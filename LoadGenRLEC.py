@@ -80,11 +80,11 @@ Loading data: The following generates 100 keys from A0 to A100 with a value that
 in value with an attribute "a1" that is values (100-0) % 10
     LoadGenRLEC.py -hs=redis-19000.redislabs.com:19000:password -op=load -kp=A -ks=0 -ke=100 -vs=1024 -sl=10
 
-Querying data: The following run the query specified 1000 times with the $1 replaced with values from A0 to 
-A100 for a1.
-    LoadGenRLEC.py -hs=redis-19000.redislabs.com:19000:password -op=query -qs=select * from default where a1='$1' 
-    -kp=A -ks=0 -ke=100 -qi=10000 -tc=5
 """)
+#     Querying data: The following run the query specified 1000 times with the $1 replaced with values from A0 to A100 for a1.
+#     LoadGenRLEC.py -hs=redis-19000.redislabs.com:19000:password -op=query -qs=select * from default where a1='$1' 
+#     -kp=A -ks=0 -ke=100 -qi=10000 -tc=5
+
     return
 
 #func for parsing the commandline args

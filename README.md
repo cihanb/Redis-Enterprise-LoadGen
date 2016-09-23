@@ -1,13 +1,13 @@
 # CouchbaseLoadGen-Python
-Python load generator for Couchbase Server 4.0 or later. Command line arguments:
+Python load generator for RLEC 4 or later. Command line arguments:
 
 ## Getting Started
 Get started with the sample scripts for bash (.sh) or windows (.bat)
-* Windows: load_sample_data.bat & query_sample_data.bat: Run the batch files to load and query data. The scripts require a local Couchbase Server running with a default bucket (couchbase://localhost:default)
-* Bash: load_sample_data.sh & query_sample_data.sh: Run the scripts to load and query data. The scripts require a local Couchbase Server running with a default bucket (couchbase://localhost:default)
+* Windows: load_sample_data.bat & query_sample_data.bat: Run the batch files to load and query data. The scripts require a local RLEC running with a default bucket (couchbase://localhost:default)
+* Bash: load_sample_data.sh & query_sample_data.sh: Run the scripts to load and query data. The scripts require a local RLEC running with a default bucket (couchbase://localhost:default)
 
 ## Connection parameter
-Specify the Couchbase Server cluster to connect to.
+Specify the RLEC cluster to connect to.
 * -hs=host address couchbase://ADDR/BUCKET. Defaults to '-hs=couchbase://localhost/default'.
 
 ## Operation parameters

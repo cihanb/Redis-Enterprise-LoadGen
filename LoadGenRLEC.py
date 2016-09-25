@@ -7,12 +7,12 @@ import redis
 
 
 # func for multi threaded execution of load
-def cb_loader(_tid, _total_threads, _key_prefix, _key_start, _key_end, _a1_selectivity, _value_size, _connection_string):
+def cb_loader(_tid, _total_threads, _key_prefix, _key_start, _key_end, _a1_selectivity, _value_size, _hostname):
     print ("Starting Thread %s" %  _tid)
 
     #establish connection
-    print ("Connecting: ", _connection_string)
-    b = Bucket(_connection_string)
+    print ("Connecting: ", _hostname)
+    b = Bucket(_hostname)
 
     for i in range( _key_start, _key_end):
         if (i % _total_threads == _tid):
@@ -25,12 +25,12 @@ def cb_loader(_tid, _total_threads, _key_prefix, _key_start, _key_end, _a1_selec
             print ("Thread: " + str(_tid) + ". Last execution time in milliseond: %3.3f" % ((t1 - t0) * 1000))
 
 # func for multi threaded execution of query
-def cb_query(_tid, _total_threads, _key_prefix, _key_start, _key_end, _query_string, _query_iterations, _connection_string):
+def cb_query(_tid, _total_threads, _key_prefix, _key_start, _key_end, _query_string, _query_iterations, _hostname):
     print ("Starting Thread %s" %  _tid)
 
     #establish connection
-    print ("Connecting: ", _connection_string)
-    b = Bucket(_connection_string)
+    print ("Connecting: ", _hostname)
+    b = Bucket(_hostname)
 
     for i in range(_query_iterations):
         if (i % _total_threads == _tid):
@@ -117,8 +117,16 @@ def parse_commandline(_my_args):
                 _my_args.query_iterations = int(argsplit[1])
                 continue
             elif (argsplit[0] == "-hn"):
-                #connection string
-                _my_args.connection_string = str(argsplit[1])
+                #hostname
+                _my_args.hostname = str(argsplit[1])
+                continue
+            elif (argsplit[0] == "-pn"):
+                #porn number
+                _my_args.port_number = str(argsplit[1])
+                continue
+            elif (argsplit[0] == "-pw"):
+                #password
+                _my_args.db_password = str(argsplit[1])
                 continue
             elif (argsplit[0] == "-kp"):
                 #key prefix
@@ -142,7 +150,7 @@ def parse_commandline(_my_args):
                 continue
             elif (argsplit[0] == "-dhn"):
                 #destination for sync
-                _my_args.destination_connection_string = str(argsplit[1])
+                _my_args.destination_hostname = str(argsplit[1])
                 continue
             elif (argsplit[0] == "-tc"):
                 #total threads for execution parallelism
@@ -183,12 +191,14 @@ def parse_commandline(_my_args):
 
 class cmd_args:
     # assign defaults
-    connection_string="localhost"
+    hostname="localhost"
+    db_passwword=""
+    db_port=10000
     total_threads=1
     loop=False
 
     #sync params
-    destination_connection_string=""
+    destination_hostname=""
  
     #key params
     key_prefix=""
@@ -205,7 +215,6 @@ class cmd_args:
     #query params
     query_string=""
     query_iterations=0
-
 
 
 # START HERE #
@@ -231,7 +240,8 @@ while (True):
                                 _my_args.key_end, 
                                 _my_args.a1_selectivity, 
                                 _my_args.value_size, 
-                                _my_args.connection_string, )
+                                _my_args.hostname,
+                                _my_args.db_password, )
                         )
                     )
             for j in cb_loader_threads:
@@ -242,9 +252,12 @@ while (True):
         else:
             #single-threaded execution
             #establish connection
-            print ("Connecting: ", _my_args.connection_string)
-            argsplit =  _my_args.connection_string.split(":")
-            b = redis.Redis(host=argsplit[0], port=argsplit[1], db=0, password=argsplit[2])
+            print ("Connecting: ", _my_args.hostname)
+            argsplit =  _my_args.hostname.split(":")
+            if (_my_args.db_passwword == ""):
+                b = redis.Redis(host=argsplit[0], port=argsplit[1], db=0)
+            else:
+                b = redis.Redis(host=argsplit[0], port=argsplit[1], db=0, password=my_args.db_password)
 
             for i in range(_my_args.key_start, _my_args.key_end):
                 t0 = time.clock()
@@ -270,7 +283,7 @@ while (True):
                                 _my_args.key_end, 
                                 _my_args.query_string, 
                                 _my_args.query_iterations, 
-                                _my_args.connection_string, )
+                                _my_args.hostname, )
                         )
                     )
             #start all threads
@@ -285,8 +298,8 @@ while (True):
             #single-threaded execution
         
             #establish connection
-            print ("Connecting: ", _my_args.connection_string)
-            b = Bucket(_my_args.connection_string)
+            print ("Connecting: ", _my_args.hostname)
+            b = Bucket(_my_args.hostname)
         
             #iterate for query
             for i in range(query_iterations):
@@ -309,7 +322,7 @@ while (True):
         print ("DONE: queried total iterations: " + str(_my_args.query_iterations))
  
     elif (_my_args.operation == "sync"):
-        print ("STARTING: syncing - source : " + str(_my_args.connection_string) + " and destination : " + str(_my_args.destination_connection_string))
+        print ("STARTING: syncing - source : " + str(_my_args.hostname) + " and destination : " + str(_my_args.destination_hostname))
         if (_my_args.total_threads > 1):
             #multi-threaded execution
             cb_query_threads = []
@@ -323,7 +336,7 @@ while (True):
                                 _my_args.key_end, 
                                 _my_args.query_string, 
                                 _my_args.query_iterations, 
-                                _my_args.connection_string, )
+                                _my_args.hostname, )
                         )
                     )
             #start all threads
@@ -338,8 +351,8 @@ while (True):
             #single-threaded execution
         
             #establish connection
-            print ("Connecting: ", _my_args.connection_string)
-            b = Bucket(_my_args.connection_string)
+            print ("Connecting: ", _my_args.hostname)
+            b = Bucket(_my_args.hostname)
         
             #iterate for query
             for i in range(query_iterations):

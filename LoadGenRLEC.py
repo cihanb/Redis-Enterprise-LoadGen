@@ -7,20 +7,22 @@ import redis
 
 
 # func for multi threaded execution of load
-def cb_loader(_tid, _total_threads, _key_prefix, _key_start, _key_end, _a1_selectivity, _value_size, _hostname):
+def cb_loader(_tid, _total_threads, _key_prefix, _key_start, _key_end, _a1_selectivity, _value_size, _hostname, _db_port, _db_password):
     print ("Starting Thread %s" %  _tid)
 
     #establish connection
     print ("Connecting: ", _hostname)
-    b = Bucket(_hostname)
+    if (_my_args.db_passwword == ""):
+        b = redis.Redis(host=_hostname, port=_db_port, db=0)
+    else:
+        b = redis.Redis(host=_hostname, port=_db_port, db=0, password=_db_password)
 
     for i in range( _key_start, _key_end):
         if (i % _total_threads == _tid):
             t0 = time.clock()
-            b.upsert( _key_prefix + str(i),
-                {'a1': (i) % _a1_selectivity, 'a2': "Zero".zfill(_value_size)},
-                replicate_to=0,
-                persist_to=0)
+                #b.get("0")
+                b.set(_my_args.key_prefix + str(i),
+                         {'a1': i % _my_args.a1_selectivity, 'a2': "".zfill(_my_args.value_size)})
             t1 = time.clock()
             print ("Thread: " + str(_tid) + ". Last execution time in milliseond: %3.3f" % ((t1 - t0) * 1000))
 
@@ -121,8 +123,8 @@ def parse_commandline(_my_args):
                 _my_args.hostname = str(argsplit[1])
                 continue
             elif (argsplit[0] == "-pn"):
-                #porn number
-                _my_args.port_number = str(argsplit[1])
+                #port number
+                _my_args.db_port = str(argsplit[1])
                 continue
             elif (argsplit[0] == "-pw"):
                 #password
@@ -241,6 +243,7 @@ while (True):
                                 _my_args.a1_selectivity, 
                                 _my_args.value_size, 
                                 _my_args.hostname,
+                                _my_args.db_port,
                                 _my_args.db_password, )
                         )
                     )

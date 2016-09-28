@@ -12,7 +12,7 @@ def cb_loader(_tid, _total_threads, _key_prefix, _key_start, _key_end, _a1_selec
 
     #establish connection
     print ("Connecting: ", _hostname)
-    if (_my_args.db_passwword == ""):
+    if (_my_args.db_password == ""):
         b = redis.Redis(host=_hostname, port=_db_port, db=0)
     else:
         b = redis.Redis(host=_hostname, port=_db_port, db=0, password=_db_password)
@@ -20,9 +20,8 @@ def cb_loader(_tid, _total_threads, _key_prefix, _key_start, _key_end, _a1_selec
     for i in range( _key_start, _key_end):
         if (i % _total_threads == _tid):
             t0 = time.clock()
-                #b.get("0")
-                b.set(_my_args.key_prefix + str(i),
-                         {'a1': i % _my_args.a1_selectivity, 'a2': "".zfill(_my_args.value_size)})
+            b.set(_my_args.key_prefix + str(i),
+                {'a1': i % _my_args.a1_selectivity, 'a2': "".zfill(_my_args.value_size)})
             t1 = time.clock()
             print ("Thread: " + str(_tid) + ". Last execution time in milliseond: %3.3f" % ((t1 - t0) * 1000))
 
@@ -194,7 +193,7 @@ def parse_commandline(_my_args):
 class cmd_args:
     # assign defaults
     hostname="localhost"
-    db_passwword=""
+    db_password=""
     db_port=10000
     total_threads=1
     loop=False
@@ -257,10 +256,10 @@ while (True):
             #establish connection
             print ("Connecting: ", _my_args.hostname)
             argsplit =  _my_args.hostname.split(":")
-            if (_my_args.db_passwword == ""):
-                b = redis.Redis(host=argsplit[0], port=argsplit[1], db=0)
+            if (_my_args.db_password == ""):
+                b = redis.Redis(host=_my_args.hostname, port=_my_args.db_port, db=0)
             else:
-                b = redis.Redis(host=argsplit[0], port=argsplit[1], db=0, password=my_args.db_password)
+                b = redis.Redis(host=_my_args.hostname, port=_my_args.db_port, db=0, password=_my_args.db_password)
 
             for i in range(_my_args.key_start, _my_args.key_end):
                 t0 = time.clock()

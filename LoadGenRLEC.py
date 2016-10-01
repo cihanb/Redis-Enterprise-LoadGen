@@ -227,20 +227,32 @@ while (True):
         else:
             #single-threaded execution
             #establish connection
-            print ("Connecting: ", _my_args.hostname)
-            argsplit =  _my_args.hostname.split(":")
-            if (_my_args.db_password == ""):
-                b = redis.Redis(host=_my_args.hostname, port=_my_args.db_port, db=0)
-            else:
-                b = redis.Redis(host=_my_args.hostname, port=_my_args.db_port, db=0, password=_my_args.db_password)
+            retry_counter = 0
+            while retry_counter < 10:
+                try:
+                    print ("Connecting: ", _my_args.hostname)
+                    argsplit =  _my_args.hostname.split(":")
+                    if (_my_args.db_password == ""):
+                        b = redis.Redis(host=_my_args.hostname, port=_my_args.db_port, db=0)
+                    else:
+                        b = redis.Redis(host=_my_args.hostname, port=_my_args.db_port, db=0, password=_my_args.db_password)
 
-            for i in range(_my_args.key_start, _my_args.key_end):
-                t0 = time.clock()
-                #b.get("0")
-                b.set(_my_args.key_prefix + str(i),
-                         {'a1': i % _my_args.a1_selectivity, 'a2': "".zfill(_my_args.value_size)})
-                t1 = time.clock()
-                print ("Last execution time in milliseond: %3.3f" % ((t1 - t0) * 1000))
+                    for i in range(_my_args.key_start, _my_args.key_end):
+                        t0 = time.clock()
+                        #b.get("0")
+                        b.set(_my_args.key_prefix + str(i),
+                                {'a1': i % _my_args.a1_selectivity, 'a2': "".zfill(_my_args.value_size)})
+                        t1 = time.clock()
+                        print ("Last execution time in millisecond: %3.3f" % ((t1 - t0) * 1000))
+                    break
+                except:
+                    b.client_kill(self,)
+                    if (retry_counter >= 10):
+                        raise NameError("Exhausted all retries.")
+                    else:
+                        retry_counter = retry_counter + 1
+                else:
+                    b.client_kill(self,)
         print ("DONE: inserted total items: " + str(_my_args.key_end - _my_args.key_start))
  
     elif (_my_args.operation == "sync"):

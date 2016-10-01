@@ -5,9 +5,8 @@ import threading
 import redis
 
 
-
 # func for multi threaded execution of load
-def cb_loader(_tid, _total_threads, _key_prefix, _key_start, _key_end, _a1_selectivity, _value_size, _hostname, _db_port, _db_password):
+def rlec_loader(_tid, _total_threads, _key_prefix, _key_start, _key_end, _a1_selectivity, _value_size, _hostname, _db_port, _db_password):
     print ("Starting Thread %s" %  _tid)
 
     #establish connection
@@ -25,23 +24,6 @@ def cb_loader(_tid, _total_threads, _key_prefix, _key_start, _key_end, _a1_selec
             t1 = time.clock()
             print ("Thread: " + str(_tid) + ". Last execution time in milliseond: %3.3f" % ((t1 - t0) * 1000))
 
-# func for multi threaded execution of query
-def cb_query(_tid, _total_threads, _key_prefix, _key_start, _key_end, _query_string, _query_iterations, _hostname):
-    print ("Starting Thread %s" %  _tid)
-
-    #establish connection
-    print ("Connecting: ", _hostname)
-    b = Bucket(_hostname)
-
-    for i in range(_query_iterations):
-        if (i % _total_threads == _tid):
-            _query_valued = _query_string.replace("$1", _key_prefix + str(((_key_start + i) % _key_end) + _key_start))
-            t0 = time.clock()
-            for row in b.n1ql_query(_query_valued):
-                # just measure retrieval time
-                pass
-            t1 = time.clock()
-            print ("Last execution time in milliseond: %3.3f" % ((t1 - t0) * 1000))
 
 # func for help
 def printhelp():
@@ -52,7 +34,7 @@ Connection parameter
     -hs=host address DB-Endpoint:DB-Port:DB-Password.
 
 Operation parameters
-    -op=operation to perform. Can be set to query, load. Defaults to '-op=load'.
+    -op=operation to perform. Can be set to sync, load. Defaults to '-op=load'.
     -tc=execution thread count. Defaults to '-tc=1'. tc can parallelize execution for better 
         performance. Each thread gets an equal share of the load or query execution over an independent 
         connection.
@@ -69,12 +51,6 @@ Value generation parameters. Applies to load operation
         for unique values, set this to the value of ke-kb
         for 2 distinct a1 values, set this to the value of (ke-kb)/2
         and so on.
-
-Query parameters. Applies to query operation.
-    -qs=query string. N1QL statement used for query. You can specify one generated value for the query: $1.
-        $1 is replaced with the key generation parameters (kp,ks and ke) explained above
-    -qi=number of iterations for query execution. specify 0 for looping and any integer for specify the times
-        to execute the query.
 
 Samples:
 Loading data: The following generates 100 keys from A0 to A100 with a value that has a total of 1024 bytes 
@@ -213,9 +189,6 @@ class cmd_args:
     value_size=0
     a1_selectivity=0
 
-    #query params
-    query_string=""
-    query_iterations=0
 
 
 # START HERE #
@@ -230,10 +203,10 @@ while (True):
         print ("STARTING: inserting total items: " + str(_my_args.key_end - _my_args.key_start))
         if (_my_args.total_threads > 1):
             #multi-threaded execution
-            cb_loader_threads = []
+            rlec_loader_threads = []
             for i in range(_my_args.total_threads):
-                cb_loader_threads.append(
-                    threading.Thread(target = cb_loader, 
+                rlec_loader_threads.append(
+                    threading.Thread(target = rlec_loader, 
                         args = (i, 
                                 _my_args.total_threads, 
                                 _my_args.key_prefix, 
@@ -246,10 +219,10 @@ while (True):
                                 _my_args.db_password, )
                         )
                     )
-            for j in cb_loader_threads:
+            for j in rlec_loader_threads:
                 j.start()
 
-            for k in cb_loader_threads:
+            for k in rlec_loader_threads:
                 k.join()
         else:
             #single-threaded execution
@@ -269,59 +242,6 @@ while (True):
                 t1 = time.clock()
                 print ("Last execution time in milliseond: %3.3f" % ((t1 - t0) * 1000))
         print ("DONE: inserted total items: " + str(_my_args.key_end - _my_args.key_start))
-
-    elif (_my_args.operation == "query"):
-        print ("STARTING: querying : " + str(_my_args.query_string))
-        if (_my_args.total_threads > 1):
-            #multi-threaded execution
-            cb_query_threads = []
-            for i in range(_my_args.total_threads):
-                cb_query_threads.append(
-                    threading.Thread(target = cb_query, 
-                        args = (i, 
-                                _my_args.total_threads, 
-                                _my_args.key_prefix, 
-                                _my_args.key_start, 
-                                _my_args.key_end, 
-                                _my_args.query_string, 
-                                _my_args.query_iterations, 
-                                _my_args.hostname, )
-                        )
-                    )
-            #start all threads
-            for j in cb_query_threads:
-                j.start()
-
-            #waitfor all threads
-            for k in cb_query_threads:
-                k.join()
-    
-        else:
-            #single-threaded execution
-        
-            #establish connection
-            print ("Connecting: ", _my_args.hostname)
-            b = Bucket(_my_args.hostname)
-        
-            #iterate for query
-            for i in range(query_iterations):
-                #replace the $1 if exists
-                query_valued = _my_args.query_string.replace("$1", 
-                    _my_args.key_prefix + str(
-                        ((_my_args.key_start + i) % _my_args.key_end) 
-                            + _my_args.key_start)
-                        )
-
-                #start execution of query
-                t0 = time.clock()
-                for row in b.n1ql_query(query_valued):
-                    # just measure retrieval time
-                    pass
-                t1 = time.clock()
-            
-                print ("Last execution time in milliseond: %3.3f" % ((t1 - t0) * 1000))
-
-        print ("DONE: queried total iterations: " + str(_my_args.query_iterations))
  
     elif (_my_args.operation == "sync"):
         print ("STARTING: syncing - source : " + str(_my_args.hostname) + " and destination : " + str(_my_args.destination_hostname))

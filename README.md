@@ -11,7 +11,7 @@ Specify the RLEC cluster to connect to.
 * -hs=host address DB-Endpoint:DB-Port:DB-Password.
 
 ## Operation parameters
-Specify the operation (action) to perform. "load" to load data and "query" to execute N1QL queries over data. Use multi threading to parallelize the operations. 
+Specify the operation (action) to perform. "load" to load data and "sync" to execute N1QL queries over data. Use multi threading to parallelize the operations. 
 * -op=operation to perform. Can be set to query, load. Defaults to '-op=load'.
 * -tc=execution thread count. Defaults to '-tc=1'. tc can parallelize execution for better performance. Each thread gets an equal share of the load or query execution over an independent connection.
 
@@ -24,10 +24,6 @@ Applies to load and query operations. All keys get the key prefix (-kp), if one 
 ## Value generation parameters. Applies to load operation
 * -vs=value size in bytes (int)
 * -sl=selectivity of a1 attribute in valuet (int) - distinct values for a1 within total items (ke-kb). For unique values, set this to the value of ke-kb for 2 distinct a1 values, set this to the value of (ke-kb)/2 and so on.
-
-## Query parameters. Applies to query operation.
-* -qs=query string. N1QL statement used for query. You can specify one generated value for the query: $1. $1 is replaced with the key generation parameters (kp,ks and ke) explained above
-* -qi=number of iterations for query execution. specify 0 for looping and any integer for specify the times to execute the query.
 
 # Examples
 * Loading data: The following generates 100 keys from A0 to A100 with a value that has a total of 1024 bytes in value with an attribute "a1" that is values (100-0) % 10

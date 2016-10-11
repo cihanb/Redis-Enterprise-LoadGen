@@ -137,6 +137,10 @@ def parse_commandline(_my_args):
                 #total threads for execution parallelism
                 _my_args.loop = bool(argsplit[1])
                 continue
+            elif (argsplit[0] == "-bs"):
+                #batch/pipeline size for command execution
+                _my_args.batch_size = int(argsplit[1])
+                continue
             elif ((argsplit[0] == "-h") or (argsplit[0] == "--help") or (argsplit[0] == "--h") or (argsplit[0] == "-help")):
                 printhelp()
                 sys.exit(0)
@@ -173,6 +177,7 @@ class cmd_args:
     db_port=10000
     total_threads=1
     loop=False
+    batch_size=100
 
     #sync params
     destination_hostname=""
@@ -236,14 +241,17 @@ while (True):
                         b = redis.Redis(host=_my_args.hostname, port=_my_args.db_port, db=0)
                     else:
                         b = redis.Redis(host=_my_args.hostname, port=_my_args.db_port, db=0, password=_my_args.db_password)
-
+                    #iterate over all keys 
                     for i in range(_my_args.key_start, _my_args.key_end):
                         t0 = time.clock()
-                        #b.get("0")
-                        b.set(_my_args.key_prefix + str(i),
-                                {'a1': i % _my_args.a1_selectivity, 'a2': "".zfill(_my_args.value_size)})
+                        #iterate to compile the batch
+                        p = b.pipeline()
+                        for j in range (0, _my_args.batch_size):
+                            p.set(_my_args.key_prefix + str(i),
+                                    {'a1': i % _my_args.a1_selectivity, 'a2': "".zfill(_my_args.value_size)})
+                        p.execute()
                         t1 = time.clock()
-                        print ("Last execution time in millisecond: %3.3f" % ((t1 - t0) * 1000))
+                        print ("Last batch execution time: {:6.3f} ms - AVG command execution time: {:3.3f} ms".format(((t1 - t0) * 1000), ((t1 - t0) * 1000)/_my_args.batch_size))
                     break
                 except:
                     b.client_kill(self,)

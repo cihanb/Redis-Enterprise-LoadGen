@@ -6,23 +6,51 @@ import redis
 
 
 # func for multi threaded execution of load
-def rlec_loader(_tid, _total_threads, _key_prefix, _key_start, _key_end, _a1_selectivity, _value_size, _hostname, _db_port, _db_password):
+def rlec_loader(_tid, _total_threads, _key_prefix, _key_start, _key_end, _a1_selectivity, _value_size, _hostname, _db_port, _db_password, _batch_size, _pool):
     print ("Starting Thread %s" %  _tid)
+    while retry_counter < total_retries:
+        try:
+            #establish connection
+            print ("Connecting: ", _hostname)
+            if (_db_password == ""):
+                b = redis.Redis(host=_hostname, port=_db_port, db=0)
+            else:
+                b = redis.Redis(host=_hostname, port=_db_port, db=0, password=_db_password)
+            
+            p = b.pipeline()
+            #iterate over keys for the thread
+            for i in range( _key_start, _key_end):
+                if (i % _total_threads == _tid):
+                    t0 = time.clock()
+                    #iterate to compile the batch
+                    for j in range (0, _batch_size):
+                        p.set(_my_args.key_prefix + str(i) + "-" + str(j),
+                            {'a1': i % _my_args.a1_selectivity, 'a2': "".zfill(_my_args.value_size)})
+                    p.execute()
+                    t1 = time.clock()
+                    print ("Thread: " + str(_tid) + " - Last batch execution time: {:6.3f} ms - AVG command execution time: {:3.3f} ms".format(((t1 - t0) * 1000), ((t1 - t0) * 1000)/_batch_size))
+        except redis.ConnectionError:
+            print ("Connection Failed : ",_my_args.hostname, " port# : ", _my_args.db_port)
+            if (retry_counter >= total_retries):
+                raise NameError("Exhausted all retries.")
+            else:
+                retry_counter = retry_counter + 1
+        except:
+            b.client_kill(self, _my_args.hostname+":"+_my_args.db_port)
+            if (retry_counter >= total_retries):
+                raise NameError("Exhausted all retries.")
+            else:
+                retry_counter = retry_counter + 1
+        else:
+            b.client_kill(self, _my_args.hostname+":"+_my_args.db_port)
+            print ("DONE: inserted total items: " + str(_my_args.key_end - _my_args.key_start))
 
-    #establish connection
-    print ("Connecting: ", _hostname)
-    if (_my_args.db_password == ""):
-        b = redis.Redis(host=_hostname, port=_db_port, db=0)
-    else:
-        b = redis.Redis(host=_hostname, port=_db_port, db=0, password=_db_password)
 
-    for i in range( _key_start, _key_end):
-        if (i % _total_threads == _tid):
-            t0 = time.clock()
-            b.set(_my_args.key_prefix + str(i),
-                {'a1': i % _my_args.a1_selectivity, 'a2': "".zfill(_my_args.value_size)})
-            t1 = time.clock()
-            print ("Thread: " + str(_tid) + ". Last execution time in milliseond: %3.3f" % ((t1 - t0) * 1000))
+
+
+
+
+
 
 
 # func for help
@@ -177,7 +205,7 @@ class cmd_args:
     db_port=10000
     total_threads=1
     loop=False
-    batch_size=100
+    batch_size=1
 
     #sync params
     destination_hostname=""
@@ -202,13 +230,25 @@ _my_args=cmd_args()
 #parse the commandline arguments and validate them
 parse_commandline(_my_args)
 
+#internal settings
+total_retries = 10
+retry_counter = 0
+
 #if loop is false, break will terminate the loop
 while (True):
-    if (_my_args.operation == "load"):
+    if (_my_args.operation == "load" and retry_counter < total_retries):
         print ("STARTING: inserting total items: " + str(_my_args.key_end - _my_args.key_start))
         if (_my_args.total_threads > 1):
             #multi-threaded execution
             rlec_loader_threads = []
+
+            #init pool
+            if (_my_args.db_password == ""):
+                pool = redis.ConnectionPool(host=_my_args.hostname, port=_my_args.db_port, db=0)
+            else:
+                pool = redis.ConnectionPool(host=_my_args.hostname, port=_my_args.db_port, db=0, password=_my_args.db_password)
+            
+            #establish threads
             for i in range(_my_args.total_threads):
                 rlec_loader_threads.append(
                     threading.Thread(target = rlec_loader, 
@@ -221,99 +261,58 @@ while (True):
                                 _my_args.value_size, 
                                 _my_args.hostname,
                                 _my_args.db_port,
-                                _my_args.db_password, )
+                                _my_args.db_password,
+                                _my_args.batch_size,
+                                pool, )
                         )
                     )
+            #start threads
             for j in rlec_loader_threads:
                 j.start()
-
+            
+            #await completion of threads
             for k in rlec_loader_threads:
                 k.join()
         else:
             #single-threaded execution
-            #establish connection
-            retry_counter = 0
-            while retry_counter < 10:
+            while retry_counter < total_retries:
+                if (_my_args.db_password == ""):
+                    pool = redis.ConnectionPool(host=_my_args.hostname, port=_my_args.db_port, db=0)
+                else:
+                    pool = redis.ConnectionPool(host=_my_args.hostname, port=_my_args.db_port, db=0, password=_my_args.db_password)
+                
                 try:
+                    #establish connection
                     print ("Connecting: ", _my_args.hostname)
-                    argsplit =  _my_args.hostname.split(":")
-                    if (_my_args.db_password == ""):
-                        b = redis.Redis(host=_my_args.hostname, port=_my_args.db_port, db=0)
-                    else:
-                        b = redis.Redis(host=_my_args.hostname, port=_my_args.db_port, db=0, password=_my_args.db_password)
+                    b = redis.Redis(connection_pool=pool)
+                    
+                    #set up pipeline for batching
+                    p = b.pipeline()
+
                     #iterate over all keys 
                     for i in range(_my_args.key_start, _my_args.key_end):
                         t0 = time.clock()
                         #iterate to compile the batch
-                        p = b.pipeline()
                         for j in range (0, _my_args.batch_size):
-                            p.set(_my_args.key_prefix + str(i),
+                            # print (_my_args.key_prefix + str(i) + "-" + str(j))
+                            p.set(_my_args.key_prefix + str(i) + "-" + str(j),
                                     {'a1': i % _my_args.a1_selectivity, 'a2': "".zfill(_my_args.value_size)})
                         p.execute()
                         t1 = time.clock()
                         print ("Last batch execution time: {:6.3f} ms - AVG command execution time: {:3.3f} ms".format(((t1 - t0) * 1000), ((t1 - t0) * 1000)/_my_args.batch_size))
-                    break
-                except:
-                    b.client_kill(self,)
-                    if (retry_counter >= 10):
+                except redis.ConnectionError:
+                    print ("Connection Failed : ",_my_args.hostname, " port# : ", _my_args.db_port)
+                    if (retry_counter >= total_retries):
                         raise NameError("Exhausted all retries.")
                     else:
                         retry_counter = retry_counter + 1
+                # except :
+                #     del b
+                #     retry_counter = total_retries
                 else:
-                    b.client_kill(self,)
-        print ("DONE: inserted total items: " + str(_my_args.key_end - _my_args.key_start))
+                    del b
+                    print ("DONE: inserted total items: " + str(_my_args.key_end - _my_args.key_start))
  
-    elif (_my_args.operation == "sync"):
-        print ("STARTING: syncing - source : " + str(_my_args.hostname) + " and destination : " + str(_my_args.destination_hostname))
-        if (_my_args.total_threads > 1):
-            #multi-threaded execution
-            cb_query_threads = []
-            for i in range(_my_args.total_threads):
-                cb_query_threads.append(
-                    threading.Thread(target = cb_query, 
-                        args = (i, 
-                                _my_args.total_threads, 
-                                _my_args.key_prefix, 
-                                _my_args.key_start, 
-                                _my_args.key_end, 
-                                _my_args.query_string, 
-                                _my_args.query_iterations, 
-                                _my_args.hostname, )
-                        )
-                    )
-            #start all threads
-            for j in cb_query_threads:
-                j.start()
-
-            #waitfor all threads
-            for k in cb_query_threads:
-                k.join()
-    
-        else:
-            #single-threaded execution
-        
-            #establish connection
-            print ("Connecting: ", _my_args.hostname)
-            b = Bucket(_my_args.hostname)
-        
-            #iterate for query
-            for i in range(query_iterations):
-                #replace the $1 if exists
-                query_valued = _my_args.query_string.replace("$1", 
-                    _my_args.key_prefix + str(
-                        ((_my_args.key_start + i) % _my_args.key_end) 
-                            + _my_args.key_start)
-                        )
-
-                #start execution of query
-                t0 = time.clock()
-                for row in b.n1ql_query(query_valued):
-                    # just measure retrieval time
-                    pass
-                t1 = time.clock()
-            
-                print ("Last execution time in milliseond: %3.3f" % ((t1 - t0) * 1000))
-
     #break if loop is not true.
     if (_my_args.loop == False):
         break

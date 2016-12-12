@@ -46,13 +46,6 @@ def rlec_loader(_tid, _total_threads, _key_prefix, _key_start, _key_end, _a1_sel
             print ("DONE: inserted total items: " + str(_my_args.key_end - _my_args.key_start))
 
 
-
-
-
-
-
-
-
 # func for help
 def printhelp():
     print("""
@@ -79,6 +72,11 @@ Value generation parameters. Applies to load operation
         for unique values, set this to the value of ke-kb
         for 2 distinct a1 values, set this to the value of (ke-kb)/2
         and so on.
+
+Misc parameters
+    -dl debug level. Default is all. 
+        Set to avail if you want availability measurements only. 
+        Set to perf if you want only perf related measurements.
 
 Samples:
 Loading data: The following generates 100 keys from A0 to A100 with a value that has a total of 1024 bytes 
@@ -110,17 +108,17 @@ def parse_commandline(_my_args):
                 #connection string
                 _my_args.operation = str(argsplit[1])
                 continue
-            elif (argsplit[0] == "-qs"):
-                #query string
-                if (len(argsplit)>2):
-                    _my_args.query_string = str("=".join(argsplit[1:]))
-                else:
-                    _my_args.query_string = str(argsplit[1])
-                continue
-            elif (argsplit[0] == "-qi"):
-                #query string
-                _my_args.query_iterations = int(argsplit[1])
-                continue
+            # elif (argsplit[0] == "-qs"):
+            #     #query string
+            #     if (len(argsplit)>2):
+            #         _my_args.query_string = str("=".join(argsplit[1:]))
+            #     else:
+            #         _my_args.query_string = str(argsplit[1])
+            #     continue
+            # elif (argsplit[0] == "-qi"):
+            #     #query string
+            #     _my_args.query_iterations = int(argsplit[1])
+            #     continue
             elif (argsplit[0] == "-hn"):
                 #hostname
                 _my_args.hostname = str(argsplit[1])
@@ -162,12 +160,16 @@ def parse_commandline(_my_args):
                 _my_args.total_threads = int(argsplit[1])
                 continue
             elif (argsplit[0] == "-loop"):
-                #total threads for execution parallelism
+                #looping forever or one iteration
                 _my_args.loop = bool(argsplit[1])
                 continue
             elif (argsplit[0] == "-bs"):
                 #batch/pipeline size for command execution
                 _my_args.batch_size = int(argsplit[1])
+                continue
+            elif (argsplit[0] == "-dl"):
+                #debug level
+                _my_args.debug_level = str(argsplit[1])
                 continue
             elif ((argsplit[0] == "-h") or (argsplit[0] == "--help") or (argsplit[0] == "--h") or (argsplit[0] == "-help")):
                 printhelp()
@@ -180,16 +182,6 @@ def parse_commandline(_my_args):
             if (_my_args.key_end <= _my_args.key_start):
                 #key_start cannot be larger than key_end value.
                 print ("Invalid key_start and key_end value.")
-                printhelp()
-                sys.exit()
-            if (_my_args.operation == "query" and _my_args.query_string == ""):
-                #query string cannot be empty
-                print ("Query string argument (-qs) cannot be empty.")
-                printhelp()
-                sys.exit()
-            if (_my_args.operation == "query" and _my_args.query_iterations <= 0):
-                #query string cannot be empty
-                print ("Invalid query iterations argument (-qi) specified.")
                 printhelp()
                 sys.exit()
         else:
@@ -222,6 +214,9 @@ class cmd_args:
     value_size=0
     a1_selectivity=0
 
+    #debug params
+    debug_level="all"
+
 
 
 # START HERE #
@@ -231,7 +226,7 @@ _my_args=cmd_args()
 parse_commandline(_my_args)
 
 #internal settings
-total_retries = 10
+total_retries = 100
 retry_counter = 0
 
 #if loop is false, break will terminate the loop
@@ -275,17 +270,18 @@ while (True):
                 k.join()
         else:
             #single-threaded execution
-            while retry_counter < total_retries:
-                if (_my_args.db_password == ""):
-                    pool = redis.ConnectionPool(host=_my_args.hostname, port=_my_args.db_port, db=0)
-                else:
-                    pool = redis.ConnectionPool(host=_my_args.hostname, port=_my_args.db_port, db=0, password=_my_args.db_password)
+            downtime = 0
+            if (_my_args.db_password == ""):
+                pool = redis.ConnectionPool(host=_my_args.hostname, port=_my_args.db_port, db=0)
+            else:
+                pool = redis.ConnectionPool(host=_my_args.hostname, port=_my_args.db_port, db=0, password=_my_args.db_password)
                 
+            #establish connection
+            print ("Connecting: ", _my_args.hostname)
+            b = redis.Redis(connection_pool=pool)        
+
+            while retry_counter < total_retries:
                 try:
-                    #establish connection
-                    print ("Connecting: ", _my_args.hostname)
-                    b = redis.Redis(connection_pool=pool)
-                    
                     #set up pipeline for batching
                     p = b.pipeline()
 
@@ -299,20 +295,37 @@ while (True):
                                     {'a1': i % _my_args.a1_selectivity, 'a2': "".zfill(_my_args.value_size)})
                         p.execute()
                         t1 = time.clock()
-                        print ("Last batch execution time: {:6.3f} ms - AVG command execution time: {:3.3f} ms".format(((t1 - t0) * 1000), ((t1 - t0) * 1000)/_my_args.batch_size))
+                        if (_my_args.debug_level == "all" or _my_args.debug_level == "perf"): 
+                            print ("Last batch execution time: {:6.3f} ms - AVG Command execution time in batch: {:6.3f} ms".format(((t1 - t0) * 1000), ((t1 - t0) * 1000)/_my_args.batch_size))
                 except redis.ConnectionError:
+                    #reset downtime counter if the downtime has been longer than 100seconds 
+                    if (downtime == 0) or ((time.clock() - downtime) > 100):
+                        downtime = time.clock()
+                    if (_my_args.debug_level == "all" or _my_args.debug_level == "avail"): 
+                            print ("Downtime started: {:6.3f} secs".format(time.clock() - downtime))
+                    
                     print ("Connection Failed : ",_my_args.hostname, " port# : ", _my_args.db_port)
                     if (retry_counter >= total_retries):
                         raise NameError("Exhausted all retries.")
                     else:
                         retry_counter = retry_counter + 1
-                # except :
-                #     del b
-                #     retry_counter = total_retries
-                else:
+
+                        #establish connection again
+                        print ("Connecting: ", _my_args.hostname)
+                        b = redis.Redis(connection_pool=pool)
+                    
+                except :
                     del b
+                    retry_counter = total_retries
+                    print ("Unknown Error.")
+                    break
+                else:
                     print ("DONE: inserted total items: " + str(_my_args.key_end - _my_args.key_start))
  
     #break if loop is not true.
     if (_my_args.loop == False):
         break
+
+    #cleanup
+    del b
+    

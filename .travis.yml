@@ -10,7 +10,7 @@ python:
 before_install:
   - sudo apt-get -qq update
   - sudo pip install update
-  - sudo -H pip install --upgrade pip
-  - sudo -H pip install redis
+install:
+  - pip install -r requirements.txt
 script:
   - python LoadGenRP.py

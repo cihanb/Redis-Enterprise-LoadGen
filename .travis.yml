@@ -7,9 +7,9 @@ python:
   - "3.5"
   - "3.6"
 before_install:
-  - sudo apt-get -qq update
-  - sudo pip install update
-  - sudo pip install redis
+  - sudo apt-get -qq update -y
+  - sudo pip install update -y
+  - sudo pip install redis -y
 
 script:
   - python LoadGenRP.py

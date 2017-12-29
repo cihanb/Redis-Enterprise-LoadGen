@@ -1,5 +1,7 @@
 # Redis Enterprise Load Generator
-Python load generator for Redis Enterprise 4 or later. Command line arguments:
+Python load generator for Redis Enterprise 4 or later. 
+
+[![Build Status](https://travis-ci.org/cihanb/Redis-Enterprise-LoadGen.svg?branch=master)](https://travis-ci.org/cihanb/Redis-Enterprise-LoadGen)
 
 ## Getting Started
 Get started with the sample scripts for bash (.sh) or windows (.bat)

@@ -16,6 +16,7 @@ script:
 - python LoadGenRP.py
 notifications:
   slack:
-    change: always
+    on_success: always
+    on_failure: always 
     rooms:
       secure: ufPlbcW/1KYOT6s11PCKQJDgEIWlPXknI/pizYAp5ZIHChGFMUlH7Xsj34lZRCPmWZlNvdjuz+XfaNh9nCnbMVH+qUOV0nT4HMy0QxjGhdy5QiwpVJzM2U8mRAoQ+7EKsDtQDyb4cdtbRWXrzuHcHoUEJlpNDK3kn7tWOReQT6aSvHzykKlIDUctTdoxLLJYmVxFFWSqVeb7Iou62shH10ZvEwfVMltWaLVw8IwGEB968uEMiIwWelQ8JWVOarP4D60vkGHcEpfzj9aAoQxjdyWvo6hWLOnDjrskRRG8jnbm5DgQxAF7rG0d3L3eBQiCXbayGqODApB3PupHqolFSCyBgnnkZEuMilu1mzr3853150X7JBO71pRrWwwUy7Xwsv5D5nU+T0Kjt2BhxzBxDWU20DWedqV2jpFWjbt4AZcHpea7YIQ/VqwJ+zte88jVXLfn3wHgxpnxSDVAMbZc2VxMsAKgFEPoTRMoOVhDT65UR+2Z4p2drnnUbfdLk/G1/R7tnArVHcAdqwvE/J6wDl4bzKVrl2Stta+lJogl+aboJ62S92WFUMKfASxYCFSSj2VbiM0o4Y03BjVyTgh+pV4Ds4l/wGSI3oxPLCnkiAe7Un0kyXKAG3KrF9TDDGA3lFGAzeUFEjBjC/PyTj//HOwkBkaYZPhxVKT9Gv+mqJI=

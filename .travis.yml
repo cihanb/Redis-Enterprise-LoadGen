@@ -1,16 +1,21 @@
 language: python
 cache: pip
 python:
-  - "2.7"
-  - "3.2"
-  - "3.3"
-  - "3.4"
-  - "3.5"
-  - "3.6"
+- '2.7'
+- '3.2'
+- '3.3'
+- '3.4'
+- '3.5'
+- '3.6'
 before_install:
-  - sudo apt-get -qq update
-  - sudo pip install update
+- sudo apt-get -qq update
+- sudo pip install update
 install:
-  - pip install -r requirements.txt
+- pip install -r requirements.txt
 script:
-  - python LoadGenRP.py
+- python LoadGenRP.py
+notifications:
+  slack:
+    change: always
+    rooms:
+      secure: ufPlbcW/1KYOT6s11PCKQJDgEIWlPXknI/pizYAp5ZIHChGFMUlH7Xsj34lZRCPmWZlNvdjuz+XfaNh9nCnbMVH+qUOV0nT4HMy0QxjGhdy5QiwpVJzM2U8mRAoQ+7EKsDtQDyb4cdtbRWXrzuHcHoUEJlpNDK3kn7tWOReQT6aSvHzykKlIDUctTdoxLLJYmVxFFWSqVeb7Iou62shH10ZvEwfVMltWaLVw8IwGEB968uEMiIwWelQ8JWVOarP4D60vkGHcEpfzj9aAoQxjdyWvo6hWLOnDjrskRRG8jnbm5DgQxAF7rG0d3L3eBQiCXbayGqODApB3PupHqolFSCyBgnnkZEuMilu1mzr3853150X7JBO71pRrWwwUy7Xwsv5D5nU+T0Kjt2BhxzBxDWU20DWedqV2jpFWjbt4AZcHpea7YIQ/VqwJ+zte88jVXLfn3wHgxpnxSDVAMbZc2VxMsAKgFEPoTRMoOVhDT65UR+2Z4p2drnnUbfdLk/G1/R7tnArVHcAdqwvE/J6wDl4bzKVrl2Stta+lJogl+aboJ62S92WFUMKfASxYCFSSj2VbiM0o4Y03BjVyTgh+pV4Ds4l/wGSI3oxPLCnkiAe7Un0kyXKAG3KrF9TDDGA3lFGAzeUFEjBjC/PyTj//HOwkBkaYZPhxVKT9Gv+mqJI=

@@ -1,6 +1,5 @@
 language: python
 python:
-  - "2.6"
   - "2.7"
   - "3.2"
   - "3.3"
@@ -9,6 +8,8 @@ python:
   - "3.6"
 before_install:
   - sudo apt-get -qq update
-  - pip install redis-py
+  - sudo pip install update
+  - sudo pip install redis-py
+
 script:
   - python LoadGenRP.py

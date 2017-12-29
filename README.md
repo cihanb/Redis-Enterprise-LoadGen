@@ -1,4 +1,4 @@
-# Redis-Enterprise-LoadGen
+# Redis Enterprise Load Generator
 Python load generator for Redis Enterprise 4 or later. Command line arguments:
 
 ## Getting Started

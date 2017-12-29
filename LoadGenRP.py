@@ -49,7 +49,7 @@ def rp_loader(_tid, _total_threads, _key_prefix, _key_start, _key_end, _a1_selec
 # func for help
 def printhelp():
     print("""
-Python load generator for RLEC 4 or later. Command line arguments:
+Python load generator for Redis Enteprise version 4 or later. Command line arguments:
 
 Connection parameter
     -hs=host address DB-Endpoint:DB-Port:DB-Password.

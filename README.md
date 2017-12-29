@@ -1,13 +1,13 @@
-# RLECLoadGen-Python
-Python load generator for RLEC 4 or later. Command line arguments:
+# Redis-Enterprise-LoadGen
+Python load generator for Redis Enterprise 4 or later. Command line arguments:
 
 ## Getting Started
 Get started with the sample scripts for bash (.sh) or windows (.bat)
-* Windows: load_sample_data.bat & query_sample_data.bat: Run the batch files to load and query data. The scripts require a local RLEC
-* Bash: load_sample_data.sh & query_sample_data.sh: Run the scripts to load and query data. The scripts require a local RLEC
+* Windows: load_sample_data.bat & query_sample_data.bat: Run the batch files to load and query data. The scripts require a local Redis Enterprise
+* Bash: load_sample_data.sh & query_sample_data.sh: Run the scripts to load and query data. The scripts require a local Redis Enterprise
 
 ## Connection parameter
-Specify the RLEC cluster to connect to.
+Specify the Redis Enterprise cluster to connect to.
 * -hs=host address DB-Endpoint:DB-Port:DB-Password.
 
 ## Operation parameters
@@ -28,4 +28,4 @@ Applies to load and query operations. All keys get the key prefix (-kp), if one 
 # Examples
 * Loading data: The following generates 100 keys from A0 to A100 with a value that has a total of 1024 bytes in value with an attribute "a1" that is values (100-0) % 10
 
-```LoadGenRLEC.py -hs=DB-Endpoint:DB-Port:DB-Password -op=load -kp=A -ks=0 -ke=100 -vs=1024 -sl=10```
+```LoadGenRP.py -hs=DB-Endpoint:DB-Port:DB-Password -op=load -kp=A -ks=0 -ke=100 -vs=1024 -sl=10```

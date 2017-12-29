@@ -6,7 +6,7 @@ import redis
 
 
 # func for multi threaded execution of load
-def rlec_loader(_tid, _total_threads, _key_prefix, _key_start, _key_end, _a1_selectivity, _value_size, _hostname, _db_port, _db_password, _batch_size, _pool):
+def rp_loader(_tid, _total_threads, _key_prefix, _key_start, _key_end, _a1_selectivity, _value_size, _hostname, _db_port, _db_password, _batch_size, _pool):
     print ("Starting Thread %s" %  _tid)
     while retry_counter < total_retries:
         try:
@@ -235,7 +235,7 @@ while (True):
         print ("STARTING: inserting total items: " + str(_my_args.key_end - _my_args.key_start))
         if (_my_args.total_threads > 1):
             #multi-threaded execution
-            rlec_loader_threads = []
+            rp_loader_threads = []
 
             #init pool
             if (_my_args.db_password == ""):
@@ -245,8 +245,8 @@ while (True):
             
             #establish threads
             for i in range(_my_args.total_threads):
-                rlec_loader_threads.append(
-                    threading.Thread(target = rlec_loader, 
+                rp_loader_threads.append(
+                    threading.Thread(target = rp_loader, 
                         args = (i, 
                                 _my_args.total_threads, 
                                 _my_args.key_prefix, 
@@ -262,11 +262,11 @@ while (True):
                         )
                     )
             #start threads
-            for j in rlec_loader_threads:
+            for j in rp_loader_threads:
                 j.start()
             
             #await completion of threads
-            for k in rlec_loader_threads:
+            for k in rp_loader_threads:
                 k.join()
         else:
             #single-threaded execution
